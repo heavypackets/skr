@@ -1,0 +1,286 @@
+$directive $target : $input_types -> $output_types { ... }
+$function : $input_types -> $output_types { ... } 
+$function : $input_types >> $yielded_types { ... }
+$function ... |> $function ... 
+
+# Output types can always be ommitted, but will be checked at converge time if specified
+# Yielded types must be specified
+# ',' commas optional between types in type list, for readability
+
+$input_type <- $value # Currying bind
+$input_type = $value # Bind of same type (or enum variant)
+
+type $typename { ... }
+$typename.$subtype = $value
+
+
+# types that use static functions (side-effect-less) to do validation/parsing
+# Input type to function required. Note, if this function can fail, runtime type errors are possible
+type Email <- string_to_email : String
+type Phone <- string_to_phone : String
+
+type User
+{
+    WriteBlock = Email
+    ReadBlock = Username
+
+    Username <- string_to_username : String
+    FirstName <- String # String type validation-less curry to FirstName
+    LastName <- String
+    Email
+    Phone
+}
+
+# Block syntax
+type User
+{
+    String {
+        FirstName
+        LastName
+    }
+    Email
+    Phone
+}
+
+#============== Create user
+proc create_user : FirstName LastName Email Phone -> User
+{
+    ApiPermission = ReadWrite
+    DiskPermission = ReadOnly
+
+    do {
+        generate_full_name
+        create_user -> User
+        activate_user 
+        set_second_factor_auth
+
+        send_welcome_email : Message <- "Welcome to Zombocom #{User.FullName}"
+
+        send_admin_email : Message <- "New user created"
+    }
+
+    commit {
+        commit_user : User
+    }
+
+    error {}
+
+    test intgration1 {
+        Description <- "CreateUser_Integration1"
+
+        do {
+
+        }
+        expect {
+
+        }
+    }
+
+    test intgration2 {
+        Description <- "CreateUser_Integration2"
+
+        do {
+
+        }
+        expect {
+
+        }
+    }
+}
+
+route create_user : FirstName LastName Email Phone
+{
+    Description = "Create new user"
+    Path <- "/user/create"
+    ApiPermission = ReadWrite
+
+    do {
+        create_user : FirstName LastName Email Phone
+    }
+
+    error {}
+}
+
+proc email_admin
+{
+    send_admin_email : Message <- "Hello World"
+}
+
+# Explicit
+proc create_user : FirstName LastName Email Phone -> User
+{
+    do {
+        generate_full_name : FirstName LastName
+        create_user : FirstName LastName FullName Email -> User
+        activate_user : User
+        set_second_factor_auth : User Phone
+    
+        send_welcome_email : Message <- "Welcome to Zombocom #{User.FullName}"
+    
+        send_admin_email : Message <- "New user created"
+    }
+}
+
+#============== Create user with optional types
+proc create_user : FirstName %LastName Email Phone %Birthday -> User
+{
+    do {
+        generate_full_name
+        create_user -> User
+        activate_user 
+        set_second_factor_auth
+            
+        ~LastName { # Type not present
+            send_welcome_email : Message <- "Welcome to Zombocom #{User.FirstName}"
+        }
+
+        %LastName { # Type present
+            set_user_last_name
+            send_welcome_email : Message <- "Welcome to Zombocom #{User.FullName}"
+        }
+
+        %Birthday {
+            set_user_birthday
+        }
+
+        send_admin_email : Message <- "New user created"
+    }
+}
+
+
+#============== Upgrade Active Users
+
+proc upgrade_active_users
+{
+    get_active_users |> each {                                 # |> previous output type will be the input type of the next function
+        upgrade_user
+        send_user_email : Message <- "You have been upgraded!"
+    }
+
+    send_admin_email : Message <- "Users have been upgraded"
+}
+
+# No sugar -- Must be explicit about what to iterate over
+proc upgrade_active_users -> List<User> 
+{
+    get_active_users -> List<User>
+    each : List<User> {
+        upgrade_user User
+        send_user_email : User, Message <- "You have been upgraded!"
+    }
+        
+    send_admin_email : Message <- "Users have been upgraded"
+}
+
+#============== Upgrade Active Users w/ generator
+# get_active_users yields a User and block will concurrently fire on that user
+proc upgrade_active_users
+{
+    gen_active_users >> User {
+        upgrade_user
+        send_user_email : Message <- "You have been upgraded!"
+    }
+
+    send_admin_email : Message <- "Users have been upgraded"
+}
+
+# Collect generated values into a List on the context, after operating on yielded value
+proc upgrade_active_users -> List<User>
+{
+    gen_active_users >> User {
+        upgrade_user
+        send_user_email : Message <- "You have been upgraded!"
+    } |> collect # -> List<User>
+
+    send_admin_email : Message <- "Users have been upgraded"
+}
+
+#  Multiple yielded types
+proc welcome_married_couples
+{
+    gen_married_couples >> User partner1, User partner2 {
+        send_user_email : User partner1, Message <- "Welcome #{partner1.FirstName} and #{partner2.FirstName}!"
+        send_user_email : User partner2, Message <- "Welcome #{partner1.FirstName} and #{partner2.FirstName}!"
+    }
+}
+
+#  Multiple, named yielded types, with named output
+proc welcome_married_couples -> List<User> partners
+{
+    gen_married_couples >> User partner1, User partner2 {
+        send_user_email : User partner1, Message <- "Welcome #{partner1.FirstName} and #{partner2.FirstName}!"
+        send_user_email : User partner2, Message <- "Welcome #{partner1.FirstName} and #{partner2.FirstName}!"
+    } 
+    |> collect -> List<User> partner1s, List<User> partner2
+    |> flatten -> List<User> partners
+    
+}
+
+#============== Add user to weekend mailing list
+
+# Query from input parameter
+proc add_user_weekend_mailing_list : UserID -> User
+{
+    get_user_from_id : UserID -> User
+    register_user_mail_chimp : MailingList <- Weekend # MailingList::Weekend
+
+    send_user_email : Message <- "Subscribed to emailing list!"
+}
+
+#============== Twins Surname
+
+# Named type instances -- needed to remove ambiguity
+proc change_twins_surname :
+    UserID first_id
+    UserID second_id
+    LastName -> User first_user
+                User second_user 
+{
+    get_user_from_id : UserID first_id -> User first_user
+    set_user_last_name : User first_user
+
+    get_user_from_id : UserID second_id -> User second_user
+    set_user_last_name : User second_user
+}
+
+# With some sugar -- No need to name return type using |>
+proc change_twins_surname : UserID first_id, UserID second_id, LastName -> User
+{
+    get_user_from_id : first_id
+    |> set_user_last_name
+
+    get_user_from_id : second_id
+    |> set_user_last_name
+}
+
+# Valid use of unneeded named instances
+proc change_twins_surname : UserID first_id, UserID second_id, LastName surname
+    -> User first_user, User second_user
+{
+    get_user_from_id : UserID first_id -> User first_user
+    set_user_last_name : User first_user, LastName surname
+
+    get_user_from_id : UserID second_id -> User second_user
+    set_user_last_name : User second_user, LastName surname
+}
+
+# Mutability -- denoted by *Type
+
+# *User is a different type from User
+proc set_user_email : *User Email
+{
+    set_user_email
+    send_user_email : Message <- "Password changed"
+}
+
+proc set_user_email : *User Email
+{
+    set_user_email : *User Email # If input types are specified, User must keep its mutability
+    send_user_email : Message <- "Password changed"
+}
+
+# Mapping
+
+# Map reduce
+
+}
