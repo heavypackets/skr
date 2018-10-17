@@ -1,0 +1,48 @@
+type Name <- String
+
+type Dude <- String
+type MrRobot <- Number
+type Cat<-Number
+
+type User {
+    WriteBlock = FirstName
+
+    FirstName <- String
+    LastName <- String
+
+    String {
+        Email
+        Address
+    }
+
+    Phone {
+        Phone1
+        Phone2
+    }
+}
+
+# type Email <- string_to_email : String
+# type Phone <- string_to_phone : String
+
+type User {
+    WriteBlock = Email
+    ReadBlock = Username
+
+    # Username <- string_to_username : String
+    FirstName <- String # String type validation-less curry to FirstName
+    LastName <- String
+    Email
+    Phone
+}
+
+type User {
+    String {
+        FirstName
+        LastName
+    }
+    Email
+    Phone
+}
+
+# Single line composite type
+type AdminUser { UserID }

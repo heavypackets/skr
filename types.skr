@@ -1,0 +1,35 @@
+# directives
+type
+
+# Simple types
+type $typename <- $basetype
+
+type $typename <- $basetype {
+    $attribute = $subtype
+    $attribute = $attribute_enum_variant
+}
+
+# Composite types
+type $typename {
+    $attribute = $subtype
+    $attribute = $attribute_enum_variant
+
+    $subtype <- $basetype
+
+    $basetype {
+        $subtype
+    }
+}
+
+# Enum types
+type $typename  {
+    $variant_type | $variant_type | ...
+}
+
+# \TODO Currying functions
+# types that use static functions (side-effect-less) to do validation/parsing
+# Input type to function required. Note, if this function can fail, runtime type errors are possible
+type $typename <- $curry_function : $input_type
+type $typename {
+    $subtype <- $curry_function : $input_type
+}

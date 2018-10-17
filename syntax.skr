@@ -10,37 +10,7 @@ $function ... |> $function ...
 $input_type <- $value # Currying bind
 $input_type = $value # Bind of same type (or enum variant)
 
-type $typename { ... }
 $typename.$subtype = $value
-
-
-# types that use static functions (side-effect-less) to do validation/parsing
-# Input type to function required. Note, if this function can fail, runtime type errors are possible
-type Email <- string_to_email : String
-type Phone <- string_to_phone : String
-
-type User
-{
-    WriteBlock = Email
-    ReadBlock = Username
-
-    Username <- string_to_username : String
-    FirstName <- String # String type validation-less curry to FirstName
-    LastName <- String
-    Email
-    Phone
-}
-
-# Block syntax
-type User
-{
-    String {
-        FirstName
-        LastName
-    }
-    Email
-    Phone
-}
 
 #============== Create user
 proc create_user : FirstName LastName Email Phone -> User
@@ -49,7 +19,6 @@ proc create_user : FirstName LastName Email Phone -> User
     DiskPermission = ReadOnly
 
     do {
-        generate_full_name
         create_user -> User
         activate_user 
         set_second_factor_auth
@@ -64,26 +33,26 @@ proc create_user : FirstName LastName Email Phone -> User
     }
 
     error {}
-
+ 
     test intgration1 {
         Description <- "CreateUser_Integration1"
 
-        do {
+        Commit = False
+        ExternalAPI = PartialMock
 
+        when {
+            FirstName <- "John"
+            LastName <- "Doe"
+            Email <- "jon.doe@example.org"
+            Phone <- "301.330.7652"
+
+            request get_time : URI <- "http://worldclockapi.com/api/json/est/now" {
+                %^"{"$id":"1","currentDateTime":"2018-10-16T14:05-04:00","utcOffset":"-04:00:00","isDayLightSavingsTime":true,"dayOfTheWeek":"Tuesday","timeZoneName":"Eastern Standard Time","currentFileTime":131841723561257240,"ordinalDate":"2018-289","serviceResponse":null}"^
+            }
         }
         expect {
-
-        }
-    }
-
-    test intgration2 {
-        Description <- "CreateUser_Integration2"
-
-        do {
-
-        }
-        expect {
-
+            User.FullName == "John Doe"
+            User.Username ~= "jdoe"
         }
     }
 }
@@ -110,7 +79,6 @@ proc email_admin
 proc create_user : FirstName LastName Email Phone -> User
 {
     do {
-        generate_full_name : FirstName LastName
         create_user : FirstName LastName FullName Email -> User
         activate_user : User
         set_second_factor_auth : User Phone
@@ -125,7 +93,6 @@ proc create_user : FirstName LastName Email Phone -> User
 proc create_user : FirstName %LastName Email Phone %Birthday -> User
 {
     do {
-        generate_full_name
         create_user -> User
         activate_user 
         set_second_factor_auth

@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Sabree Blackmon <sabree@heavypackets.sh>"]
 
 [dependencies]
+pest = "2.0"
+pest_derive = "2.0"
+
