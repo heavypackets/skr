@@ -21,6 +21,10 @@ type User {
     }
 }
 
+type UserType { 
+    Admin | Normal
+}
+
 # type Email <- string_to_email : String
 # type Phone <- string_to_phone : String
 
@@ -46,3 +50,5 @@ type User {
 
 # Single line composite type
 type AdminUser { UserID }
+
+type PhoneType { Home | Cell | Office }

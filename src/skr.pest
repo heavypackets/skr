@@ -1,7 +1,11 @@
 WHITESPACE = _{ " " | NEWLINE }
-comment = _{ "#" ~ (!"#" ~ ANY)*}
+COMMENT = _{ delim_comment ~ (!NEWLINE ~ ANY)* ~ NEWLINE }
 
-kwd = _{ " " } // keyword delimiter
+delim_comment = @{"#"}
+delim_keyword = _{ " " }
+
+op_left_curry = @{"<-"}
+op_right_curry = @{"->"}
 
 base_type_bool = @{ "Bool" }
 base_type_string = @{ "String" }
@@ -9,25 +13,19 @@ base_type_number = @{ "Number" }
 base_type_list = @{ "List<" ~ type_name ~ ">" }
 base_type = @{ base_type_string | base_type_number | base_type_bool | base_type_list }
 
-type_keyword = @{ "type" ~ kwd }
+kw_type = @{ "type" ~ delim_keyword }
 
-type_attribute = @{ ASCII_ALPHA_UPPER ~ ASCII_ALPHA+ }
-type_attribute_assigment = { type_attribute ~ "=" ~ type_name }
 type_name = @{ ASCII_ALPHA_UPPER ~ ASCII_ALPHANUMERIC+ }
+type_attribute = @{ ASCII_ALPHA_UPPER ~ ASCII_ALPHA+ }
 
-type_def_curry = { type_keyword ~ type_name ~ "<-" ~ base_type }
-type_def_block = { type_keyword ~ type_name ~ type_block }
-type_def_enum = { type_keyword ~ type_name ~ type_enum_block}
+type_def = { type_def_curry | type_def_block }
+    type_def_curry = { kw_type ~ type_name ~ op_left_curry ~ base_type }
 
-type_block = { "{" ~ (type_attribute_assigment | subtype_def | subtype_block)+ ~ "}" }
-type_enum_block = { "{" ~ type_name ~ ("|" ~ type_name)+ ~ "}" }
+    type_def_block = { kw_type ~ type_name ~ "{" ~ (type_enum_block | type_block) ~ "}" }
+        type_block = { (type_attribute_assigment | subtype_def_curry | subtype_block | type_name)+ }
+            type_attribute_assigment = { type_attribute ~ "=" ~ type_name }
+            subtype_def_curry = { type_name ~ op_left_curry ~ base_type }
+            subtype_block = { type_name ~ "{" ~ type_name+ ~ "}" }
+        type_enum_block = { type_name ~ ("|" ~ type_name)+ }
 
-type_def = { type_def_curry | type_def_block | type_def_enum }
-
-subtype_def_static = { type_name ~ "=" ~ base_type }
-subtype_def_curry = { type_name ~ "<-" ~ base_type }
-subtype_def = { subtype_def_curry | subtype_def_static }
-
-subtype_block = { type_name ~ "{" ~ type_name+ ~ "}" }
-
-file = { SOI ~ (comment | type_def)* ~ EOI }
+file = { SOI ~ (type_def)* ~ EOI }
