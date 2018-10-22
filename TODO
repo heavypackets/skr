@@ -1,0 +1,6 @@
+Types specified in type blocks cannot have attributes -- is this okay?
+  -- Yes. Use stand-alone statement to set attributes
+Support enum variants in attribute values
+Validate unreachables are indeed unreachable (they are) -- there should parse errors here instead
+Type fields private
+TypeCollection use &str instead of cloned string?

@@ -1,27 +1,41 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-type TypeIdentifier = String;
-type TypeAttributeKey = String;
-type TypeAtrributeValue = String;
+pub type TypeName = String;
+pub type TypeAttributeKey = String;
+pub type TypeAtrributeValue = String;
 
-type TypeAttributes = HashMap<TypeAttributeKey, TypeAtrributeValue>;
-type SubTypes = Vec<SimpleType>;
+pub type TypeAttributes = HashMap<TypeAttributeKey, TypeAtrributeValue>;
+pub type TypeCollection = HashMap<TypeName, Type>;
+pub type Types = HashSet<TypeName>;
+pub type EnumVariants = HashSet<TypeName>;
 
-struct SimpleType {
-    name: TypeIdentifier,
-    attributes: TypeAttributes,
-    base_type: BaseType,
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub enum TypeClass {
+    Native(NativeType),
+    Derived(TypeName),
+    Enum(EnumVariants),
+    Composite {
+        derived_types: Types,
+        subtypes: TypeCollection,
+    },
+    List(TypeName),
+    Unknown,
 }
 
-struct CompositeType {
-    name: TypeIdentifier,
-    attributes: TypeAttributes,
-    sub_types: SubTypes,
+// TODO - Store span of where type was defined
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct Type {
+    pub name: TypeName,
+    pub attributes: Option<TypeAttributes>,
+    pub type_class: TypeClass,
 }
 
-enum BaseType {
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
+pub enum NativeType {
     Number,
+    Float,
     String,
     Boolean,
-    List(TypeIdentifier),
+    Date,
+    Time,
 }

@@ -1,34 +1,40 @@
-type Name <- String
-
 type Dude <- String
 type MrRobot <- Number
 type Cat<-Number
 
+type Name <- String
+type FirstName <- Name {
+    WriteBlock = Global
+    ReadBlock = Cluster
+}
+
 type User {
     WriteBlock = FirstName
 
-    FirstName <- String
-    LastName <- String
+    FirstName <- Name
+    LastName <- Name
+    PhoneBook <- List<Phone>
+
 
     String {
         Email
         Address
     }
 
-    Phone {
+    List<Phone> {
         Phone1
         Phone2
     }
 }
 
-type UserType { 
+type UserType {
     Admin | Normal
 }
 
 # type Email <- string_to_email : String
 # type Phone <- string_to_phone : String
 
-type User {
+type SuperAdminUser {
     WriteBlock = Email
     ReadBlock = Username
 
@@ -39,16 +45,15 @@ type User {
     Phone
 }
 
-type User {
-    String {
-        FirstName
-        LastName
-    }
-    Email
-    Phone
-}
-
 # Single line composite type
 type AdminUser { UserID }
 
-type PhoneType { Home | Cell | Office }
+type PhoneType { 
+    WriteBlock = Global
+
+    Home | Cell | Office
+}
+
+type PhoneBook <- List<Phone>
+
+# Dictionary
